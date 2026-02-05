@@ -7,30 +7,34 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
+ <!-- historial -->
   <aside id="historyPanel">
     <h3>Historial (últimas 10)</h3>
     <div id="historyList"></div>
   </aside>
+   <!-- principal -->
 <main id="main">
     <header style="width:100%; align-items:center;">
+       <!-- titulo -->
         <h1>Percusión con señas</h1>
 
         <div class="controls-group">
-            
+                        <!-- botones -->
+
             <div class="modeBtns" role="tablist" aria-label="Modos de tiempo">
               <button id="btnBin" class="modeActive">Binario (4)</button>
               <button id="btnTer">Ternario (3)</button>
             </div>
-
             <div class="modeBtns" role="tablist" aria-label="Largo del ciclo">
               <button id="btnCycle4" class="modeActive"> 2 Pulsos</button>
+              <button id="btnCycle3">3 pulsos</button>
               <button id="btnCycle6">4 pulsos</button>
             </div>
         </div>
     </header>
 
     <div id="combo">0000 0000</div>
+            <!-- manos -->
 
     <div id="handsGrid" class="hands-grid hands-2-set" aria-hidden="false">
         <div id="handUL" class="hand"></div>
@@ -41,45 +45,54 @@
     <div class="controls-group" style="margin-top: 100px;">
         <div class="controls">
             <label style="font-size:14px;color:#ddd;">BPM:
-              <input id="bpm" type="number" value="60" min="20" max="240">
+              <input id="bpm" type="number" value="80" min="20" max="240">
             </label>
         </div>
+                    <!-- botones inicio - detener -->
+
         <button id="btnStart" style="padding:10px 20px;">▶ Iniciar</button>
         <button id="btnStop" style="padding:10px 20px;">■ Detener</button>
     </div>
 <div id="pulse" class="pulse" aria-hidden="true"></div>
+  
+<!-- batido -->
 
-<h3 style="margin-top:40px; color:#aaa;">Plumas</h3>
+<div id="beatIndicator">
+  <svg width="60" height="60" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="45" stroke="#555" stroke-width="2" fill="none"/>
+    <line 
+      id="beatLine"
+      x1="50" y1="50"
+      x2="50" y2="90"
+      stroke="#4cff4c"
+      stroke-width="4"
+      stroke-linecap="round"
+    />
+  </svg>
+</div>
 
-<div class="hands-container">
+
+            <!-- PLUMAS -->
+<h3 style="margin-top:40px; color:#aaa; cursor: pointer;" id="plumaToggle">Plumas <span id="plumaIcon">▼</span>
+</h3>
+<div class="hands-container" id="plumaContainer">
+  <div id="plumasPanel" class="plumas-panel">
+    <h4>Plumas</h4>
+
+    <button class="pluma-btn" id="btnPlumaCumbia"> Pluma Cumbia</button>
+    <button class="pluma-btn" id="btnPlumaRumba"> Pluma Rumba</button>
+    <button class="pluma-btn" id="btnPlumaZentangle">Pluma Zentangle</button>
+    <button class="pluma-btn pluma-clear" id="btnPlumaClear">Borrar pluma</button>
+
+  </div>
   <h4 id="plumaTitle" style="color:#888; margin-bottom:10px;"></h4>
   <div id="plumaView" class="pluma-view"></div>
 </div>
 
     <footer style="margin-top:auto; color:#bbb; font-size:13px; padding-bottom:10px;">
-      <span id="footerText">Ciclo: 4 compases — 2 previsualización (violeta) + 2 activación (verde).</span>
+      <span id="footerText">Ciclo: 4 pulsos — 2 previsualización (violeta) + 2 activación (verde).</span>
     </footer>
 </main>
-
-<div id="plumasPanel" class="plumas-panel">
-  <h4>Plumas</h4>
-
-  <button class="pluma-btn" id="btnPlumaCumbia">
-    Pluma Cumbia
-  </button>
-
-  <button class="pluma-btn" id="btnPlumaRumba">
-    Pluma Rumba
-  </button>
-
-  <button class="pluma-btn" id="btnPlumaZentangle">
-    Pluma Zentangle
-  </button>
-  <button class="pluma-btn pluma-clear" id="btnPlumaClear">
-  Borrar pluma
-</button>
-
-</div>
 
 <script src="app.js"></script>
 </body>
