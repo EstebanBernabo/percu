@@ -1,630 +1,551 @@
-
-/* ================= AUDIO ================ */
-let audioCtx = null;
-function ensureAudio(){
-  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
-const plumaCumbia = {
-  name: "Pluma Cumbia",
-  fingers: 4,          // 4 = binario, 3 = ternario
-  sequence: [
-    { R: "1111", L: "1011" },
-    { R: "1110", L: "1111" },
-    { R: "1000", L: "0010" },
-    { R: "0000", L: "1100" },
-    { R: "1111", L: "1011" },
-    { R: "1110", L: "1111" },
-    { R: "1011", L: "0110" },
-    { R: "1001", L: "0010" }
-  ]
-};
-const plumaRumba = {
-  fingers: 4,          // 4 = binario, 3 = ternario
-  name: "Pluma Rumba",
-  sequence: [
-    { R: "0111", L: "0101" },
-    { R: "1010", L: "1101" },
-    { R: "0110", L: "1010" },
-    { R: "1001", L: "1000" }
-    ]
-};
-
-
-const plumaZentangle = {
-  fingers: 4,
-  name: "Pluma Zentangle",
-  sequence: [ 
-    { R: "1001", L: "0010" },
-    { R: "0100", L: "1010" },
-    { R: "1001", L: "0010" },
-    { R: "0100", L: "1010" }]
-};
-
-let activePluma = null;
-
-const beatDirections = {
-  2: [0, 180],                 // abajo, arriba
-  3: [0, -90, 180],            // abajo, izquierda, arriba
-  4: [0, -90, 90, 180]         // abajo, izquierda, derecha, arriba
-};
-
-function getBeatCount(){
-  if(cycleLength === 4) return 2;
-  if(cycleLength === 5) return 3;
-  if(cycleLength === 6) return 4;
-}
-
-
-// Preview sound: grave y suave
-function playPreviewClick(time = 0){
-  ensureAudio();
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = 'sine';
-  osc.frequency.value = 300;
-  gain.gain.setValueAtTime(0.12, audioCtx.currentTime + time);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + time + 0.08);
-  osc.connect(gain); gain.connect(audioCtx.destination);
-  osc.start(audioCtx.currentTime + time);
-  osc.stop(audioCtx.currentTime + time + 0.09);
-}
-
-
-// Active sound: claro y más marcado
-function playActiveClick(time = 0){
-  ensureAudio();
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = 'sine';
-  osc.frequency.value = 1000;
-  gain.gain.setValueAtTime(0.28, audioCtx.currentTime + time);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + time + 0.06);
-  osc.connect(gain); gain.connect(audioCtx.destination);
-  osc.start(audioCtx.currentTime + time);
-  osc.stop(audioCtx.currentTime + time + 0.07);
-}
-
-/* =============== STATE ================ */
-let numFingers = 4;        // 4 (Binario) o 3 (Ternario)
-let cycleLength = 4;       // 4 o 6 steps
-let timer = null;
-let step = 0;              
-let comboActual = null;
-let playMode = "random"; // "random" | "pluma"
-let plumaStep = 0;
-let plumaPhase = "preview"; // "preview" | "active"
-let plumaPulse = 0; // pulso real (cada beep)
-
-
-
-/* UI elements */
-const handsGrid = document.getElementById('handsGrid');
-const handUL = document.getElementById('handUL');
-const handUR = document.getElementById('handUR');
-const handLL = document.getElementById('handLL');
-const handLR = document.getElementById('handLR');
-const comboLabel = document.getElementById('combo');
-const pulse = document.getElementById('pulse');
-const historyList = document.getElementById('historyList');
-const footerText = document.getElementById('footerText');
-
-/* Buttons */
-const btnBin = document.getElementById('btnBin');
-const btnTer = document.getElementById('btnTer');
-const btnCycle4 = document.getElementById('btnCycle4');
-const btnCycle3 = document.getElementById('btnCycle3');
-const btnCycle6 = document.getElementById('btnCycle6');
-
-/* =============== HELPERS ================ */
-function stop(){
-  if(timer) { clearInterval(timer); timer = null; }
-  step = 0; 
-}
-
-// Alternar entre Binario (4) y Ternario (3)
-function setModeTime(mode){
-  stop(); 
-  numFingers = (mode === 'binario') ? 4 : 3;
-
-  btnBin.classList.toggle('modeActive', mode === 'binario');
-  btnTer.classList.toggle('modeActive', mode === 'ternario');
-
-  historyList.innerHTML = '';
-  updateUI(true);
-}
-
-// FUNCIÓN CLAVE: Muestra/Oculta manos superiores
-function updateHandVisibility(){
-  // Resetear todo
-  handUL.style.display = 'none';
-  handUR.style.display = 'none';
-
-  // Ciclo 6 → 4 manos
-  if(cycleLength === 6){
-    handUL.style.display = 'flex';
-    handUR.style.display = 'flex';
+  :root{
+    --bg:#111; --panel:#1b1b1b; --muted:#333; --violet:#b05cff; --green:#4cff4c; --finger-off:#555;
+  }
+  body{
+    margin:0; font-family:system-ui,Arial,Helvetica,sans-serif; background:var(--bg); color:#eee;
+    display:flex; gap:28px; height:100vh; box-sizing:border-box;
+    justify-content: space-between; 
   }
 
-  // Ciclo 5 → 3 manos (UL + LL + LR)
-  if(cycleLength === 5){
-    handUL.style.display = 'flex';
+  /* ------------- SIDEBAR HISTORIAL ------------- */
+  #historyPanel{
+    width:220px;
+    padding:14px;
+    box-sizing:border-box;
+    background:var(--panel);
+    border-right:1px solid var(--muted);
+    overflow-y:auto;
+  }
+  #historyPanel h3{ margin:0 0 10px 0; font-size:15px; color:#ddd; text-align:center; }
+  #historyList{ display:flex; flex-direction:column; gap:18px; }
+
+  .histBlock{
+    padding-bottom:8px;
+    border-bottom:1px solid rgba(255,255,255,0.03);
   }
 
-  // Ciclo 4 → 2 manos (solo LL + LR)
-  handsGrid.classList.toggle('hands-2-set', cycleLength === 4);
+  .miniRow{
+    display:flex; 
+    justify-content:center;
+    gap:6px;
+    align-items:flex-end;
+  }
+
+  .miniHand{ display:flex; gap:3px; align-items:flex-end; justify-content:center; }
+
+  .miniFinger{
+    width:6px; 
+    border-radius:3px;
+    transition:height 0.18s;
+  }
+
+  /* ------------- SIDEBAR PRESETS ------------- */
+  #presetsPanel{
+    width:220px;
+    padding:14px;
+    box-sizing:border-box;
+    background:var(--panel);
+    border-left:1px solid var(--muted);
+    overflow-y:auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  #presetsPanel h3{ margin:0 0 10px 0; font-size:15px; color:#ddd; text-align:center; }
+
+  #presetsList button{
+    width: 100%;
+    padding: 10px 8px;
+    margin-bottom: 5px;
+    border-radius: 6px;
+    border: 1px solid var(--muted);
+    background: #2a2a2a;
+    color: #eee;
+    cursor: pointer;
+    font-size: 14px;
+    text-align: center;
+    transition: background 0.1s;
+  }
+  #presetsList button:hover{ background: #3a3a3a; }
+  .presetActive{ 
+    background: var(--violet) !important; 
+    color: var(--bg) !important;
+    border-color: var(--violet) !important;
+  }
+
+  /* ------------- MAIN ------------- */
+#main{
+  flex:1;
+  padding:26px;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+
+  overflow-y: auto;   /* ← CLAVE */
+}
+  header{ 
+  width:100%; 
+  display:flex; 
+  flex-direction: column; /* Apila el contenido (H1 y controles) */
+  align-items: center;    /* Centra horizontalmente */
+  gap:12px; 
+}
+h1{ margin:0; font-size:20px; text-align: center; } /* Aseguramos que el H1 esté centrado */
+/* ... [CSS anterior] ... */
+
+/* Aseguramos que los grupos de controles también se centren */
+.controls-group{
+  display:flex; 
+  gap:14px; 
+  align-items:center;
+  justify-content: center; /* Centra los grupos dentro de sí mismos */
 }
 
+  .controls-group{
+    display:flex; gap:14px; align-items:center;
+  }
 
-
-// Alternar entre Ciclo 4 (2P+2A) y Ciclo 6 (2P+4A)
-function setCycleLength(length){
-  stop(); 
-  cycleLength = length;
-
-  btnCycle4.classList.toggle('modeActive', length === 4);
-  btnCycle6.classList.toggle('modeActive', length === 6);
-
-  // 1. Ajustar la visibilidad de las manos
-  updateHandVisibility();
-
-  // 2. Actualizar el texto del footer
-  const activeSteps = cycleLength - 2;
-  footerText.textContent = `Ciclo: ${cycleLength} pulsos — 2 previsualización (violeta) + ${activeSteps} activación (verde).`;
+  /* Contenedores de botones de modo/ciclo */
+  .modeBtns{ 
+    display:flex; 
+    gap:8px; 
+    /* Aumento el margen interno para que no se vean pegados a otros controles */
+    padding: 5px 0; 
+  }
   
-  // 3. Resetear la UI con el número correcto de manos
-  updateUI(true);
+  /* ESTILOS DE BOTONES AMPLIADOS (Binario/Ternario y Ciclo 4/6) */
+  .modeBtns button {
+    padding: 12px 16px; /* Aumento del padding interno */
+    border-radius: 8px; /* Borde más redondeado */
+    border: 2px solid var(--violet); /* Borde más grueso */
+    background: var(--panel); 
+    color: var(--violet);    
+    cursor: pointer;
+    font-size: 16px; /* Aumento del tamaño de la fuente */
+    /*font-weight: **bolder**; /* Grosor de letra más fuerte */
+    transition: background-color 0.1s, color 0.1s, border-color 0.1s;  }
+
+.modeBtns button {
+  /* ... otras propiedades ... */
+  font-size: 15px; /* ¡Letra más grande! */
+  font-weight: 600; /* ¡Máximo grosor! */
+  /* ... otras propiedades ... */
 }
 
-/* genera un string con numFingers bits '0'/'1' */
-function randBits(){
-  let s='';
-  for(let i=0;i<numFingers;i++) s += (Math.random() < 0.5) ? '1' : '0';
-  return s;
+  .modeActive{ 
+    background: var(--green) !important; 
+    color: var(--bg) !important;       
+    border-color: var(--green) !important; /* Borde del color activo */
+  }  
+
+/* ... [Resto del CSS] ... */
+
+/* Estilo para los botones Iniciar/Detener y el input BPM (ya estaban bien, solo para referencia) */
+.controls input[type=number]{ width:60px; padding:6px; border-radius:6px; border:1px solid #333; background:#151515; color:#eee; }
+.controls button{ 
+  padding:10px 12px; 
+  border-radius:6px; 
+  border:1px solid #333; 
+  background:#222; 
+  color:#eee; 
+  cursor:pointer; 
+  font-weight: bold;
 }
 
-/* Genera 2 o 4 sets de bits según el cycleLength */
-function randCombo(){
-  const combo = {
-    ll: randBits(),
-    lr: randBits(),
-    ul: '',
-    ur: ''
-  };
+  #combo{ color: #111; margin-top:18px; font-weight:#111; font-size:20px; letter-spacing:4px; text-align:center; }
 
-  // Ciclo 6 → 4 manos
-  if (cycleLength === 6) {
-    combo.ul = randBits();
-    combo.ur = randBits();
+  /* Contenedor principal de las 4 manos */
+  .hands-grid{ 
+    display:grid; 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 40px 80px; 
+    margin-top:22px; 
+    max-width: 600px;
   }
 
-  // Ciclo 5 → 3 manos (UL + LL + LR)
-  if (cycleLength === 5) {
-    combo.ul = randBits();
+  /* Por defecto, manos superiores ocultas (para el modo 2 sets) */
+  #handUL, #handUR { display: none; }
+
+  /* Ajustamos el layout si solo hay 2 manos visibles */
+  .hands-grid.hands-2-set {
+    display: flex;
+    justify-content: center;
+    gap: 80px;
+  }
+  .hands-grid.hands-2-set .hand { margin-top: 40px; }
+
+  /* Nuevo estilo para botones inactivos (por defecto) */
+.modeBtns button {
+  background: var(--panel); /* Fondo oscuro */
+  color: var(--violet);    /* Texto violeta para inactivo */
+  border: 1px solid var(--violet);
+  transition: background 0.1s, color 0.1s;
+}
+
+  .hand{ display:flex; gap:8px; align-items:flex-end; }
+
+  .finger{
+    width:20px; border-radius:6px; transition:height .18s, background-color .18s, opacity .18s;
+  }
+  .on{ height:120px; opacity:1; }
+  .off{ height:60px; opacity:0.45; }
+
+  .previewColor{ background:var(--violet); }
+  .activeColor{ background:var(--green); }
+
+  .pulse{
+    width:24px; height:24px; background:#444; border-radius:50%; margin-top:18px; transition:transform .12s, background .12s;
+  }
+  .pulse.flash{ transform:scale(1.5); }
+
+  footer{ margin-top:auto; color:#bbb; font-size:13px; padding-bottom:10px; }
+
+  /* small screens: collapse sidebars */
+  @media (max-width:1300px){
+    #historyPanel, #presetsPanel{ width: 180px; }
+  }
+  @media (max-width:1100px){
+    header{ flex-direction:column; align-items:flex-start; }
+    .controls-group{ flex-wrap:wrap; margin-top:10px; }
+    body{ display:block; padding: 12px; }
+    #historyPanel, #presetsPanel{ display:none; }
+    #main{ width: 100%; padding: 12px; }
+  }
+.preset-controls {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+#presetName {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--muted);
+  background: #222;
+  color: #eee;
+  font-size: 14px;
+}
+
+#btnSavePreset,
+#btnLoadPreset,
+#btnDeletePreset {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--violet);
+  background: var(--panel);
+  color: var(--violet);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+#btnSavePreset:hover { background: #3a3a3a; }
+#btnLoadPreset:hover:not(:disabled) { background: var(--green); color: #111; }
+#btnDeletePreset:hover:not(:disabled) { background: #ff4444; color: white; }
+
+#presetsList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.preset-item {
+  padding: 10px 12px;
+  background: #222;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+  font-size: 14px;
+}
+
+.preset-item:hover {
+  background: #333;
+  border-color: var(--violet);
+}
+
+.preset-item.selected {
+  background: var(--violet);
+  color: #111;
+  border-color: var(--violet);
+}
+
+.preset-item .bits {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-left: 8px;
+}
+
+.preset-controls {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+#presetName {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--muted);
+  background: #222;
+  color: #eee;
+  font-size: 14px;
+}
+
+#btnSavePreset,
+#btnLoadPreset,
+#btnDeletePreset {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--violet);
+  background: var(--panel);
+  color: var(--violet);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+#btnSavePreset:hover { background: #3a3a3a; }
+
+#btnLoadPreset:hover:not(:disabled) {
+  background: var(--green);
+  color: #111;
+}
+
+#btnDeletePreset:hover:not(:disabled) {
+  background: #ff4444;
+  color: white;
+}
+
+#btnLoadPreset:disabled,
+#btnDeletePreset:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.pluma-view{
+  width: 100%;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 20px 0;
+}
+.pluma-view .miniHand {
+  gap: 8px;
+}
+
+.pluma-view .miniFinger {
+  width: 22px;
+  border-radius: 6px;
+}
+
+
+.pluma-row {
+  display: flex;
+  gap: 40px;
+  align-items: flex-end;
+}
+
+.pluma-label {
+  width: 70px;
+  font-size: 12px;
+  color: #888;
+  text-align: right;
+}
+
+.pluma-hand {
+  display: flex;
+  gap: 10px;
+}
+.pluma-view {
+  position: relative;
+  z-index: 1;
+}
+
+.controls,
+button {
+  position: relative;
+  z-index: 5;
+}
+.hands-container{
+  width: 100%;
+  max-width: 600px;   /* igual que el grid de arriba */
+}
+.plumas-panel {
+  position: fixed;
+  right: 10px;
+  top: 100px;
+  width: 130px;
+  padding: 10px;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,.4);
+  z-index: 20;
+}
+
+.plumas-panel h4 {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pluma-btn {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 6px;
+  background: #1a1a1a;
+  color: #aaa;
+  border: 1px solid #333;
+  cursor: pointer;
+}
+
+.pluma-btn:hover {
+  background: #222;
+}
+
+.pluma-btn.active {
+  background: #0f5;
+  color: #000;
+  border-color: #0f5;
+  box-shadow: 0 0 8px rgba(0,255,120,0.6);
+}
+.pluma-row {
+  opacity: 0.25;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.pluma-row.preview {
+  opacity: 0.5;
+}
+
+.pluma-row.active {
+  opacity: 1;
+  transform: scale(1.05);
+}
+:root {
+  --pluma-preview: #b05cff; 
+}
+
+
+/*nuevo desde aca
+
+
+
+/* Por defecto (escritorio) siempre visible */
+.hands-container {
+  transition: all 0.3s ease;
+}
+
+/* En móvil */
+@media (max-width: 768px) {
+  .hands-container {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    background: rgba(30,30,30,0.9);
+    border-radius: 8px;
+    margin: 0 10px;
+    padding: 0 10px;
   }
 
-  return combo;
-}
+  .hands-container.expanded {
+    max-height: 60vh;          /* o 70vh, lo que te guste */
+    opacity: 1;
+    padding: 15px 10px;
+  }
 
+  #plumaToggle {
+    background: #222;
+    padding: 10px 15px;
+    border-radius: 8px 8px 0 0;
+    margin: 0 10px;
+    text-align: center;
+    font-size: 16px;
+    cursor: pointer;
+    user-select: none;
+  }
 
-/* dibuja una mano (bits como string '1010') */
-function drawHand(container, bits, activeStage=false){
-  container.innerHTML = '';
-  // Solo dibuja si 'bits' no está vacío
-  if(bits.length > 0) {
-    for(const c of bits){
-      const d = document.createElement('div');
-      d.className = 'finger ' + (c === '1' ? 'on' : 'off') + ' ' + (activeStage ? 'activeColor' : 'previewColor');
-      container.appendChild(d);
-    }
+  #plumaIcon {
+    margin-left: 8px;
+    transition: transform 0.3s;
+  }
+
+  #plumaToggle.active #plumaIcon {
+    transform: rotate(180deg);
+  }
+
+  .pluma-view {
+    max-height: none; /* quitamos límite para que crezca natural */
+    overflow-y: auto;
   }
 }
 
-/* Dibuja las manos visibles */
-function drawHands(combo, activeStage=false){
-  // Manos inferiores (siempre)
-  drawHand(handLL, combo.ll, activeStage);
-  drawHand(handLR, combo.lr, activeStage);
-
-  // Mano superior izquierda (ciclo 5 y 6)
-  if(cycleLength === 5 || cycleLength === 6){
-    drawHand(handUL, combo.ul, activeStage);
-  } else {
-    handUL.innerHTML = '';
-  }
-
-  // Mano superior derecha (solo ciclo 6)
-  if(cycleLength === 6){
-    drawHand(handUR, combo.ur, activeStage);
-  } else {
-    handUR.innerHTML = '';
+/* Escritorio: siempre completo */
+@media (min-width: 769px) {
+  .hands-container {
+    max-height: none;
+    opacity: 1;
   }
 }
-
-
-/* actualiza etiqueta combo */
-function updateComboLabel(combo){
-  let text = `${combo.ll} ${combo.lr}`; // Muestra LL y LR
-  if (cycleLength === 6) {
-    // Si es ciclo 6, añade UL y UR al principio
-    text = `${combo.ul} ${combo.ur}   ${text}`;
-  }
-  comboLabel.textContent = text.trim();
-}
-
-/* pulso visual */
-function flashPulse(){
-  pulse.classList.add('flash');
-  setTimeout(()=> pulse.classList.remove('flash'), 120);
-}
-
-/* Actualiza la UI de las manos y combo (usado en inicialización y cambio de modo/ciclo) */
-function updateUI(reset=false){
-    let combo;
-    if(reset || !comboActual){
-        // Genera el placeholder 
-        const placeholderBits = '0'.repeat(numFingers);
-        combo = { 
-            ll: placeholderBits, 
-            lr: placeholderBits,
-            ul: (cycleLength === 6) ? placeholderBits : '',
-            ur: (cycleLength === 6) ? placeholderBits : ''
-        };
-        comboActual = combo; 
-    } else {
-        combo = comboActual;
-    }
-
-    drawHands(combo, false);
-    updateComboLabel(combo);
-}
-
-/* ================= HISTORIAL ================= */
-function pushToHistory(combo){
-  const block = document.createElement('div');
-  block.className = 'histBlock';
-  const row = document.createElement('div');
-  row.className = 'miniRow';
-  
-  let combosArray = [combo.ll, combo.lr]; // Siempre registra LL y LR
-
-  if (cycleLength === 6) {
-    // Si es ciclo 6, registra las 4 manos
-    combosArray = [combo.ul, combo.ur, combo.ll, combo.lr];
+@media (max-width: 768px) {
+  #plumaContainer {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    background: rgba(30,30,30,0.95);
+    border-radius: 8px;
+    margin: 10px;
+    padding: 0;
   }
 
-  for(const bits of combosArray){
-    const miniHand = document.createElement('div');
-    miniHand.className = 'miniHand';
-    for(const c of bits){
-      const f = document.createElement('div');
-      f.className = 'miniFinger';
-      f.style.background = (c === '1') ? 'var(--green)' : 'var(--finger-off)';
-      f.style.height = (c === '1') ? '30px' : '14px';
-      f.style.opacity = (c === '1') ? '1' : '0.4';
-      miniHand.appendChild(f);
-    }
-    row.appendChild(miniHand);
+  #plumaContainer.expanded {
+    max-height: 70vh;  /* ajustá según necesites */
+    opacity: 1;
+    padding: 15px;
   }
 
-  block.appendChild(row);
-  historyList.prepend(block);
-  while(historyList.children.length > 10) historyList.removeChild(historyList.lastChild);
-}
-
-/* ================== CICLO ================== */
-function start() {
-  ensureAudio();
-  stop();
-
-  if (playMode === "pluma" && activePluma) {
-    startPluma();
-  } else {
-    startRandom();
-  }
-}
-function startRandom() {
-  const bpmVal = parseFloat(document.getElementById('bpm').value) || 80;
-  const interval = 60000 / bpmVal;
-
-  step = 0;
-  comboActual = randCombo();
-
-  runTick();
-  timer = setInterval(runTick, interval);
-}
-function startPluma() {
-  const bpmVal = parseFloat(document.getElementById('bpm').value) || 80;
-  const interval = 60000 / bpmVal;
-
-    plumaPulse = 0;
-    plumaPhase = "preview";
-
-  runPlumaTick();
-  timer = setInterval(runPlumaTick, interval);
-}
-
-function runPlumaTick() {
-  flashPulse();
-
-  const rowIndex = Math.floor(plumaPulse / 2);
-  const isRightHand = plumaPulse % 2 === 0;
-
-  // PREVIEW (2 pulsos = 1 fila completa)
-  if (plumaPhase === "preview") {
-    highlightPlumaRow(rowIndex, false);
-    playPreviewClick();
-
-    plumaPulse++;
-
-    if (plumaPulse >= 2) { // 2 filas = 2 pulsos de preview por mano
-      plumaPhase = "active";
-      plumaPulse = 0;
-    }
-    return;
+  .plumas-panel {
+    position: static !important;  /* importante: sacamos fixed en móvil */
+    width: 100%;
+    box-shadow: none;
+    border: none;
+    background: transparent;
   }
 
-  // ACTIVACIÓN
-  highlightPlumaRow(rowIndex, true);
-  playActiveClick();
-
-  plumaPulse++;
-
-  // fin de la pluma
-  if (rowIndex >= activePluma.sequence.length) {
-    stop();
+  #plumaToggle {
+    background: #222;
+    padding: 12px;
+    margin: 10px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 16px;
   }
 }
 
-
-
-/* El tick actual (llamado cada compás) */
-function runTick(){
-  flashPulse();
-
-  // Primeros 2 steps: PREVIEW (0 y 1)
-  if(step < 2){
-    drawHands(comboActual, false); // color preview (violeta)
-    updateComboLabel(comboActual);
-    playPreviewClick();
-    
-    document.getElementById('beatLine').style.opacity = 0;
-
-  } 
-  // Siguientes steps: ACTIVE 
-  else {
-    // Si step === 2, registrar en historial al comenzar la activación
-    if(step === 2){
-      pushToHistory(comboActual);
-    }
-    drawHands(comboActual, true); // color active (verde)
-    updateComboLabel(comboActual);
-    playActiveClick();
-    updateBeatIndicator();
+@media (min-width: 769px) {
+  #plumaContainer {
+    max-height: none !important;
+    opacity: 1 !important;
   }
-
-  // Avanzar el step (usando cycleLength: 4 o 6)
-  step = (step + 1) % cycleLength;
-
-  // Si volvemos a step 0, generamos el nuevo combo para el siguiente ciclo de preview
-if(step === 0){
-  comboActual = randCombo();
-}
-}
-
-/* ============== Event bindings ============== */
-document.getElementById('btnStart').addEventListener('click', start);
-document.getElementById('btnStop').addEventListener('click', stop);
-
-// Modo de tiempo (Binario/Ternario)
-btnBin.addEventListener('click', ()=> setModeTime('binario'));
-btnTer.addEventListener('click', ()=> setModeTime('ternario'));
-
-// Largo del ciclo (4/6 compases)
-btnCycle4.addEventListener('click', ()=> setCycleLength(4));
-btnCycle3.addEventListener('click', ()=> setCycleLength(5));
-btnCycle6.addEventListener('click', ()=> setCycleLength(6));
-
-/* Inicialización: Estado por defecto */
-setCycleLength(4); 
-setModeTime('binario'); 
-
-/* ============== Atajo de Teclado (Barra Espaciadora) ============== */
-document.addEventListener('keydown', function(event) {
-  // 32 es el keycode para la barra espaciadora
-  if (event.code === 'Space') {
-    event.preventDefault(); // Evita que la barra espaciadora haga scroll en la página
-    
-    // Si el metrónomo está corriendo, lo detenemos (pausa)
-    if (timer !== null) {
-      document.getElementById('btnStop').click(); // Simula el clic en Detener
-    } else {
-      // Si está detenido, lo iniciamos
-      document.getElementById('btnStart').click(); // Simula el clic en Iniciar
-    }
+  .plumas-panel {
+    position: fixed;
+    /* mantiene el estilo original en escritorio */
   }
-});
-
-/* ================== PLUMA VIEW ================== */
-
-const plumaContainer = document.getElementById('plumaView');
-
-/**
- * Renderiza una pluma completa (N manos, N*dedos)
- * pluma = {
- *   fingers: 4,
- *   hands: [
- *     "1111",
- *     "1011",
- *     "1110",
- *     ...
- *   ]
- * }
- */
-function renderPluma(pluma) {
-  const container = document.getElementById('plumaView');
-  container.innerHTML = '';
-
-    pluma.sequence.forEach((pulso, i) => {
-    const isPreview = i < 0;
-    const row = document.createElement('div');
-    row.dataset.index = i;
-    row.classList.add("pluma-row");
-    row.style.display = 'flex';
-    row.style.gap = '36px';
-    row.style.marginBottom = '12px';
-    row.style.justifyContent = 'center';
-    row.style.alignItems = 'flex-end';
-
-    // mano derecha
-    const handR = document.createElement('div');
-    handR.className = 'miniHand';
-    [...pulso.R].forEach(bit => {
-      const f = document.createElement('div');
-      f.className = 'miniFinger';
-      f.style.height = bit === '1' ? '70px' : '34px';
-      f.style.background =
-  bit === '1'
-    ? (isPreview ? 'var(--pluma-preview)' : 'var(--green)')
-    : 'var(--finger-off)';
-
-f.style.opacity = bit === '1'
-  ? (isPreview ? '0.7' : '1')
-  : '0.35';
-
-      handR.appendChild(f);
-    });
-
-    // mano izquierda
-    const handL = document.createElement('div');
-    handL.className = 'miniHand';
-    [...pulso.L].forEach(bit => {
-      const f = document.createElement('div');
-      f.className = 'miniFinger';
-      f.style.height = bit === '1' ? '70px' : '34px';
-      f.style.background =
-        bit === '1'
-        ? (isPreview ? 'var(--pluma-preview)' : 'var(--green)')
-        : 'var(--finger-off)';
-
-      f.style.opacity = bit === '1'
-     ? (isPreview ? '0.7' : '1')
-    : '0.35';
-
-      handL.appendChild(f);
-    });
-
-    row.appendChild(handR);
-    row.appendChild(handL);
-    container.appendChild(row);
-  });
 }
 
-function highlightPlumaRow(index, active) {
-  document.querySelectorAll(".pluma-row").forEach((row, i) => {
-    row.classList.remove("preview", "active");
-
-    if (i === index) {
-      row.classList.add(active ? "active" : "preview");
-    }
-  });
+#beatIndicator {
+  margin-top: 14px;
+  opacity: 0.8;
 }
 
-//renderPluma(plumaCumbia);
-
-function showPluma(pluma, btnId) {
-  const title = document.getElementById("plumaTitle");
-  const view  = document.getElementById("plumaView");
-
-  view.innerHTML = "";
-
-  if (!pluma) {
-    title.textContent = "";
-    activePluma = null;
-    playMode = "random";
-    setActivePlumaButton(null);
-    return;
-  }
-
-  activePluma = pluma;
-  playMode = "pluma";
-  title.textContent = pluma.name;
-  setActivePlumaButton(btnId);
-
-  renderPluma(pluma);
+#beatLine {
+  transform-origin: 50% 50%;
+  transition: transform 0.12s ease-out, opacity 0.1s;
+  opacity: 0; /* oculta por defecto */
 }
-
-
-
-document.getElementById("btnPlumaCumbia").addEventListener("click", () => {
-  showPluma(plumaCumbia, "btnPlumaCumbia");
-});
-
-document.getElementById("btnPlumaRumba").addEventListener("click", () => {
-  showPluma(plumaRumba, "btnPlumaRumba");
-});
-
-document.getElementById("btnPlumaZentangle").addEventListener("click", () => {
-  showPluma(plumaZentangle, "btnPlumaZentangle");
-});
-document.getElementById("btnPlumaClear").addEventListener("click", clearPluma);
-
-
-function clearPluma() {
-  showPluma(null);
-}
-
-function setActivePlumaButton(activeId) {
-  document.querySelectorAll(".pluma-btn").forEach(btn => {
-    btn.classList.toggle("active", btn.id === activeId);
-  });
-}
-
-// Toggle panel Plumas en móvil
-document.addEventListener('DOMContentLoaded', () => {
-  const toggle = document.getElementById('plumaToggle');
-  const container = document.getElementById('plumaContainer');
-  const icon = document.getElementById('plumaIcon');
-
-  if (!toggle || !container) return;
-
-  toggle.addEventListener('click', () => {
-    const isExpanded = container.classList.toggle('expanded');
-    toggle.classList.toggle('active', isExpanded);
-
-    // Cambia flecha ↑/↓
-    icon.textContent = isExpanded ? '▲' : '▼';
-  });
-});
-
-function getBeatStartStep(){
-  return 2; // siempre empieza al comenzar la activación
-}
-
-function updateBeatIndicator(){
-  const beatCount = getBeatCount();
-  const startStep = getBeatStartStep();
-  const beatLine = document.getElementById('beatLine');
-
-  // Antes de la activación → oculto
-  if(step < startStep){
-    beatLine.style.opacity = 0;
-    return;
-  }
-
-  const beatIndex = step - startStep;
-
-  // Ya no hay más beats → oculto
-  if(beatIndex >= beatCount){
-    beatLine.style.opacity = 0;
-    return;
-  }
-
-  // Beat válido → muestro línea
-  beatLine.style.opacity = 1;
-
-  const angle = beatDirections[beatCount][beatIndex];
-  beatLine.style.transform = `rotate(${angle}deg)`;
-}
-
-
 
