@@ -4,240 +4,37 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Señas Percusión — 4 Conjuntos Flexible</title>
-<style>
-  :root{
-    --bg:#111; --panel:#1b1b1b; --muted:#333; --violet:#b05cff; --green:#4cff4c; --finger-off:#555;
-  }
-  body{
-    margin:0; font-family:system-ui,Arial,Helvetica,sans-serif; background:var(--bg); color:#eee;
-    display:flex; gap:28px; height:100vh; box-sizing:border-box;
-    justify-content: space-between; 
-  }
-
-  /* ------------- SIDEBAR HISTORIAL ------------- */
-  #historyPanel{
-    width:220px;
-    padding:14px;
-    box-sizing:border-box;
-    background:var(--panel);
-    border-right:1px solid var(--muted);
-    overflow-y:auto;
-  }
-  #historyPanel h3{ margin:0 0 10px 0; font-size:15px; color:#ddd; text-align:center; }
-  #historyList{ display:flex; flex-direction:column; gap:18px; }
-
-  .histBlock{
-    padding-bottom:8px;
-    border-bottom:1px solid rgba(255,255,255,0.03);
-  }
-
-  .miniRow{
-    display:flex; 
-    justify-content:center;
-    gap:6px;
-    align-items:flex-end;
-  }
-
-  .miniHand{ display:flex; gap:3px; align-items:flex-end; justify-content:center; }
-
-  .miniFinger{
-    width:6px; 
-    border-radius:3px;
-    transition:height 0.18s;
-  }
-
-  /* ------------- SIDEBAR PRESETS ------------- */
-  #presetsPanel{
-    width:220px;
-    padding:14px;
-    box-sizing:border-box;
-    background:var(--panel);
-    border-left:1px solid var(--muted);
-    overflow-y:auto;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-  #presetsPanel h3{ margin:0 0 10px 0; font-size:15px; color:#ddd; text-align:center; }
-
-  #presetsList button{
-    width: 100%;
-    padding: 10px 8px;
-    margin-bottom: 5px;
-    border-radius: 6px;
-    border: 1px solid var(--muted);
-    background: #2a2a2a;
-    color: #eee;
-    cursor: pointer;
-    font-size: 14px;
-    text-align: center;
-    transition: background 0.1s;
-  }
-  #presetsList button:hover{ background: #3a3a3a; }
-  .presetActive{ 
-    background: var(--violet) !important; 
-    color: var(--bg) !important;
-    border-color: var(--violet) !important;
-  }
-
-  /* ------------- MAIN ------------- */
-  #main{ flex:1; padding:26px; box-sizing:border-box; overflow:hidden; display:flex; flex-direction:column; align-items:center; }
-  header{ 
-  width:100%; 
-  display:flex; 
-  flex-direction: column; /* Apila el contenido (H1 y controles) */
-  align-items: center;    /* Centra horizontalmente */
-  gap:12px; 
-}
-h1{ margin:0; font-size:20px; text-align: center; } /* Aseguramos que el H1 esté centrado */
-/* ... [CSS anterior] ... */
-
-/* Aseguramos que los grupos de controles también se centren */
-.controls-group{
-  display:flex; 
-  gap:14px; 
-  align-items:center;
-  justify-content: center; /* Centra los grupos dentro de sí mismos */
-}
-
-  .controls-group{
-    display:flex; gap:14px; align-items:center;
-  }
-
-  /* Contenedores de botones de modo/ciclo */
-  .modeBtns{ 
-    display:flex; 
-    gap:8px; 
-    /* Aumento el margen interno para que no se vean pegados a otros controles */
-    padding: 5px 0; 
-  }
-  
-  /* ESTILOS DE BOTONES AMPLIADOS (Binario/Ternario y Ciclo 4/6) */
-  .modeBtns button {
-    padding: 12px 16px; /* Aumento del padding interno */
-    border-radius: 8px; /* Borde más redondeado */
-    border: 2px solid var(--violet); /* Borde más grueso */
-    background: var(--panel); 
-    color: var(--violet);    
-    cursor: pointer;
-    font-size: 16px; /* Aumento del tamaño de la fuente */
-    font-weight: **bolder**; /* Grosor de letra más fuerte */
-    transition: background 0.1s, color 0.1s, border-color 0.1s;
-  }
-
-.modeBtns button {
-  /* ... otras propiedades ... */
-  font-size: 15px; /* ¡Letra más grande! */
-  font-weight: 600; /* ¡Máximo grosor! */
-  /* ... otras propiedades ... */
-}
-
-  .modeActive{ 
-    background: var(--green) !important; 
-    color: var(--bg) !important;       
-    border-color: var(--green) !important; /* Borde del color activo */
-  }  
-
-/* ... [Resto del CSS] ... */
-
-/* Estilo para los botones Iniciar/Detener y el input BPM (ya estaban bien, solo para referencia) */
-.controls input[type=number]{ width:60px; padding:6px; border-radius:6px; border:1px solid #333; background:#151515; color:#eee; }
-.controls button{ 
-  padding:10px 12px; 
-  border-radius:6px; 
-  border:1px solid #333; 
-  background:#222; 
-  color:#eee; 
-  cursor:pointer; 
-  font-weight: bold;
-}
-
-  #combo{ margin-top:18px; font-size:20px; letter-spacing:4px; text-align:center; }
-
-  /* Contenedor principal de las 4 manos */
-  .hands-grid{ 
-    display:grid; 
-    grid-template-columns: repeat(2, 1fr); 
-    gap: 40px 80px; 
-    margin-top:22px; 
-    max-width: 600px;
-  }
-
-  /* Por defecto, manos superiores ocultas (para el modo 2 sets) */
-  #handUL, #handUR { display: none; }
-
-  /* Ajustamos el layout si solo hay 2 manos visibles */
-  .hands-grid.hands-2-set {
-    display: flex;
-    justify-content: center;
-    gap: 80px;
-  }
-  .hands-grid.hands-2-set .hand { margin-top: 40px; }
-
-  /* Nuevo estilo para botones inactivos (por defecto) */
-.modeBtns button {
-  background: var(--panel); /* Fondo oscuro */
-  color: var(--violet);    /* Texto violeta para inactivo */
-  border: 1px solid var(--violet);
-  transition: background 0.1s, color 0.1s;
-}
-
-  .hand{ display:flex; gap:8px; align-items:flex-end; }
-
-  .finger{
-    width:20px; border-radius:6px; transition:height .18s, background-color .18s, opacity .18s;
-  }
-  .on{ height:120px; opacity:1; }
-  .off{ height:60px; opacity:0.45; }
-
-  .previewColor{ background:var(--violet); }
-  .activeColor{ background:var(--green); }
-
-  .pulse{
-    width:24px; height:24px; background:#444; border-radius:50%; margin-top:18px; transition:transform .12s, background .12s;
-  }
-  .pulse.flash{ transform:scale(1.5); }
-
-  footer{ margin-top:auto; color:#bbb; font-size:13px; padding-bottom:10px; }
-
-  /* small screens: collapse sidebars */
-  @media (max-width:1300px){
-    #historyPanel, #presetsPanel{ width: 180px; }
-  }
-  @media (max-width:1100px){
-    header{ flex-direction:column; align-items:flex-start; }
-    .controls-group{ flex-wrap:wrap; margin-top:10px; }
-    body{ display:block; padding: 12px; }
-    #historyPanel, #presetsPanel{ display:none; }
-    #main{ width: 100%; padding: 12px; }
-  }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-
+ <!-- historial -->
   <aside id="historyPanel">
     <h3>Historial (últimas 10)</h3>
     <div id="historyList"></div>
   </aside>
+   <!-- principal -->
 <main id="main">
     <header style="width:100%; align-items:center;">
+       <!-- titulo -->
         <h1>Percusión con señas</h1>
 
         <div class="controls-group">
-            
+                        <!-- botones -->
+
             <div class="modeBtns" role="tablist" aria-label="Modos de tiempo">
               <button id="btnBin" class="modeActive">Binario (4)</button>
               <button id="btnTer">Ternario (3)</button>
             </div>
-
             <div class="modeBtns" role="tablist" aria-label="Largo del ciclo">
-              <button id="btnCycle4" class="modeActive">Ciclo 4 (2P+2A)</button>
-              <button id="btnCycle6">Ciclo 6 (2P+4A)</button>
+              <button id="btnCycle4" class="modeActive"> 2 Pulsos</button>
+              <button id="btnCycle3">3 pulsos</button>
+              <button id="btnCycle6">4 pulsos</button>
             </div>
         </div>
     </header>
 
     <div id="combo">0000 0000</div>
+            <!-- manos -->
 
     <div id="handsGrid" class="hands-grid hands-2-set" aria-hidden="false">
         <div id="handUL" class="hand"></div>
@@ -245,346 +42,58 @@ h1{ margin:0; font-size:20px; text-align: center; } /* Aseguramos que el H1 est�
         <div id="handLL" class="hand"></div>
         <div id="handLR" class="hand"></div>
     </div>
-    
     <div class="controls-group" style="margin-top: 100px;">
         <div class="controls">
             <label style="font-size:14px;color:#ddd;">BPM:
-              <input id="bpm" type="number" value="60" min="20" max="240">
+              <input id="bpm" type="number" value="80" min="20" max="240">
             </label>
         </div>
+                    <!-- botones inicio - detener -->
+
         <button id="btnStart" style="padding:10px 20px;">▶ Iniciar</button>
         <button id="btnStop" style="padding:10px 20px;">■ Detener</button>
     </div>
+<div id="pulse" class="pulse" aria-hidden="true"></div>
+  
+<!-- batido -->
 
-    <div id="pulse" class="pulse" aria-hidden="true"></div>
+<div id="beatIndicator">
+  <svg width="60" height="60" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="45" stroke="#555" stroke-width="2" fill="none"/>
+    <line 
+      id="beatLine"
+      x1="50" y1="50"
+      x2="50" y2="90"
+      stroke="#4cff4c"
+      stroke-width="4"
+      stroke-linecap="round"
+    />
+  </svg>
+</div>
+
+
+            <!-- PLUMAS -->
+<h3 style="margin-top:40px; color:#aaa; cursor: pointer;" id="plumaToggle">Plumas <span id="plumaIcon">▼</span>
+</h3>
+<div class="hands-container" id="plumaContainer">
+  <div id="plumasPanel" class="plumas-panel">
+    <h4>Plumas</h4>
+
+    <button class="pluma-btn" id="btnPlumaCumbia"> Pluma Cumbia</button>
+    <button class="pluma-btn" id="btnPlumaRumba"> Pluma Rumba</button>
+    <button class="pluma-btn" id="btnPlumaZentangle">Pluma Zentangle</button>
+    <button class="pluma-btn pluma-clear" id="btnPlumaClear">Borrar pluma</button>
+
+  </div>
+  <h4 id="plumaTitle" style="color:#888; margin-bottom:10px;"></h4>
+  <div id="plumaView" class="pluma-view"></div>
+</div>
 
     <footer style="margin-top:auto; color:#bbb; font-size:13px; padding-bottom:10px;">
-      <span id="footerText">Ciclo: 4 compases — 2 previsualización (violeta) + 2 activación (verde).</span>
+      <span id="footerText">Ciclo: 4 pulsos — 2 previsualización (violeta) + 2 activación (verde).</span>
     </footer>
 </main>
 
-  <aside id="presetsPanel">
-    <h3>Presets (Arreglos)</h3>
-    <div id="presetsList">
-        <button data-preset="cumbia-pluma">Pluma Cumbia</button>
-        <button data-preset="rumba-pluma">Pluma Rumba</button>
-        <button data-preset="zentangle-pluma">Pluma Zentangle</button>
-        <button data-preset="chacarera-tema">Tema Chacarera</button>
-        <button data-preset="rock-tema">Tema Rock</button>
-        <button data-preset="cumbia-tema">Tema Cumbia</button>
-        
-        <button data-preset="7">---</button>
-        <button data-preset="8">---</button>
-        <button data-preset="9">---</button>
-        <button data-preset="10">---</button>
-    </div>
-  </aside>
-
-<script>
-/* ================= AUDIO ================ */
-let audioCtx = null;
-function ensureAudio(){
-  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
-
-// Preview sound: grave y suave
-function playPreviewClick(time = 0){
-  ensureAudio();
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = 'sine';
-  osc.frequency.value = 300;
-  gain.gain.setValueAtTime(0.12, audioCtx.currentTime + time);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + time + 0.08);
-  osc.connect(gain); gain.connect(audioCtx.destination);
-  osc.start(audioCtx.currentTime + time);
-  osc.stop(audioCtx.currentTime + time + 0.09);
-}
-
-// Active sound: claro y más marcado
-function playActiveClick(time = 0){
-  ensureAudio();
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = 'sine';
-  osc.frequency.value = 1000;
-  gain.gain.setValueAtTime(0.28, audioCtx.currentTime + time);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + time + 0.06);
-  osc.connect(gain); gain.connect(audioCtx.destination);
-  osc.start(audioCtx.currentTime + time);
-  osc.stop(audioCtx.currentTime + time + 0.07);
-}
-
-/* =============== STATE ================ */
-let numFingers = 4;        // 4 (Binario) o 3 (Ternario)
-let cycleLength = 4;       // 4 o 6 steps
-let timer = null;
-let step = 0;              
-let comboActual = null;
-
-/* UI elements */
-const handsGrid = document.getElementById('handsGrid');
-const handUL = document.getElementById('handUL');
-const handUR = document.getElementById('handUR');
-const handLL = document.getElementById('handLL');
-const handLR = document.getElementById('handLR');
-const comboLabel = document.getElementById('combo');
-const pulse = document.getElementById('pulse');
-const historyList = document.getElementById('historyList');
-const footerText = document.getElementById('footerText');
-
-/* Buttons */
-const btnBin = document.getElementById('btnBin');
-const btnTer = document.getElementById('btnTer');
-const btnCycle4 = document.getElementById('btnCycle4');
-const btnCycle6 = document.getElementById('btnCycle6');
-
-/* =============== HELPERS ================ */
-function stop(){
-  if(timer) { clearInterval(timer); timer = null; }
-  step = 0; 
-}
-
-// Alternar entre Binario (4) y Ternario (3)
-function setModeTime(mode){
-  stop(); 
-  numFingers = (mode === 'binario') ? 4 : 3;
-
-  btnBin.classList.toggle('modeActive', mode === 'binario');
-  btnTer.classList.toggle('modeActive', mode === 'ternario');
-
-  historyList.innerHTML = '';
-  updateUI(true);
-}
-
-// FUNCIÓN CLAVE: Muestra/Oculta manos superiores
-function updateHandVisibility(){
-  const showFourHands = (cycleLength === 6);
-  
-  // Mostrar/Ocultar manos superiores (UL, UR)
-  handUL.style.display = showFourHands ? 'flex' : 'none';
-  handUR.style.display = showFourHands ? 'flex' : 'none';
-  
-  // Ajustar la clase del contenedor principal para cambiar el layout
-  handsGrid.classList.toggle('hands-2-set', !showFourHands);
-}
-
-
-// Alternar entre Ciclo 4 (2P+2A) y Ciclo 6 (2P+4A)
-function setCycleLength(length){
-  stop(); 
-  cycleLength = length;
-
-  btnCycle4.classList.toggle('modeActive', length === 4);
-  btnCycle6.classList.toggle('modeActive', length === 6);
-
-  // 1. Ajustar la visibilidad de las manos
-  updateHandVisibility();
-
-  // 2. Actualizar el texto del footer
-  const activeSteps = cycleLength - 2;
-  footerText.textContent = `Ciclo: ${cycleLength} compases — 2 previsualización (violeta) + ${activeSteps} activación (verde).`;
-  
-  // 3. Resetear la UI con el número correcto de manos
-  updateUI(true);
-}
-
-/* genera un string con numFingers bits '0'/'1' */
-function randBits(){
-  let s='';
-  for(let i=0;i<numFingers;i++) s += (Math.random() < 0.5) ? '1' : '0';
-  return s;
-}
-
-/* Genera 2 o 4 sets de bits según el cycleLength */
-function randCombo(){
-  const combo = { ll: randBits(), lr: randBits() }; // LL y LR siempre existen
-  
-  if (cycleLength === 6) { // Si son 4 grupos (Ciclo 6)
-    combo.ul = randBits();
-    combo.ur = randBits();
-  } else { // Si son 2 grupos (Ciclo 4)
-    combo.ul = ''; 
-    combo.ur = '';
-  }
-  return combo;
-}
-
-/* dibuja una mano (bits como string '1010') */
-function drawHand(container, bits, activeStage=false){
-  container.innerHTML = '';
-  // Solo dibuja si 'bits' no está vacío
-  if(bits.length > 0) {
-    for(const c of bits){
-      const d = document.createElement('div');
-      d.className = 'finger ' + (c === '1' ? 'on' : 'off') + ' ' + (activeStage ? 'activeColor' : 'previewColor');
-      container.appendChild(d);
-    }
-  }
-}
-
-/* Dibuja las manos visibles */
-function drawHands(combo, activeStage=false){
-    // Dibujar manos inferiores (siempre visibles)
-    drawHand(handLL, combo.ll, activeStage);
-    drawHand(handLR, combo.lr, activeStage);
-    
-    // Dibujar manos superiores solo si existen en el combo
-    if(cycleLength === 6){
-        drawHand(handUL, combo.ul, activeStage);
-        drawHand(handUR, combo.ur, activeStage);
-    } else {
-        // Asegurarse de que las manos superiores estén vacías en la UI
-        handUL.innerHTML = '';
-        handUR.innerHTML = '';
-    }
-}
-
-/* actualiza etiqueta combo */
-function updateComboLabel(combo){
-  let text = `${combo.ll} ${combo.lr}`; // Muestra LL y LR
-  if (cycleLength === 6) {
-    // Si es ciclo 6, añade UL y UR al principio
-    text = `${combo.ul} ${combo.ur}   ${text}`;
-  }
-  comboLabel.textContent = text.trim();
-}
-
-/* pulso visual */
-function flashPulse(){
-  pulse.classList.add('flash');
-  setTimeout(()=> pulse.classList.remove('flash'), 120);
-}
-
-/* Actualiza la UI de las manos y combo (usado en inicialización y cambio de modo/ciclo) */
-function updateUI(reset=false){
-    let combo;
-    if(reset || !comboActual){
-        // Genera el placeholder 
-        const placeholderBits = '0'.repeat(numFingers);
-        combo = { 
-            ll: placeholderBits, 
-            lr: placeholderBits,
-            ul: (cycleLength === 6) ? placeholderBits : '',
-            ur: (cycleLength === 6) ? placeholderBits : ''
-        };
-        comboActual = combo; 
-    } else {
-        combo = comboActual;
-    }
-
-    drawHands(combo, false);
-    updateComboLabel(combo);
-}
-
-/* ================= HISTORIAL ================= */
-function pushToHistory(combo){
-  const block = document.createElement('div');
-  block.className = 'histBlock';
-  const row = document.createElement('div');
-  row.className = 'miniRow';
-  
-  let combosArray = [combo.ll, combo.lr]; // Siempre registra LL y LR
-
-  if (cycleLength === 6) {
-    // Si es ciclo 6, registra las 4 manos
-    combosArray = [combo.ul, combo.ur, combo.ll, combo.lr];
-  }
-
-  for(const bits of combosArray){
-    const miniHand = document.createElement('div');
-    miniHand.className = 'miniHand';
-    for(const c of bits){
-      const f = document.createElement('div');
-      f.className = 'miniFinger';
-      f.style.background = (c === '1') ? 'var(--green)' : 'var(--finger-off)';
-      f.style.height = (c === '1') ? '30px' : '14px';
-      f.style.opacity = (c === '1') ? '1' : '0.4';
-      miniHand.appendChild(f);
-    }
-    row.appendChild(miniHand);
-  }
-
-  block.appendChild(row);
-  historyList.prepend(block);
-  while(historyList.children.length > 10) historyList.removeChild(historyList.lastChild);
-}
-
-/* ================== CICLO ================== */
-function start(){
-  ensureAudio();
-  const bpmVal = parseFloat(document.getElementById('bpm').value) || 60;
-  const interval = 60000 / bpmVal;
-
-  stop();
-  step = 0;
-  comboActual = randCombo(); // Generar el primer combo inmediatamente
-
-  runTick();
-  timer = setInterval(runTick, interval);
-}
-
-/* El tick actual (llamado cada compás) */
-function runTick(){
-  flashPulse();
-
-  // Primeros 2 steps: PREVIEW (0 y 1)
-  if(step < 2){
-    drawHands(comboActual, false); // color preview (violeta)
-    updateComboLabel(comboActual);
-    playPreviewClick();
-  } 
-  // Siguientes steps: ACTIVE 
-  else {
-    // Si step === 2, registrar en historial al comenzar la activación
-    if(step === 2){
-      pushToHistory(comboActual);
-    }
-    drawHands(comboActual, true); // color active (verde)
-    updateComboLabel(comboActual);
-    playActiveClick();
-  }
-
-  // Avanzar el step (usando cycleLength: 4 o 6)
-  step = (step + 1) % cycleLength;
-
-  // Si volvemos a step 0, generamos el nuevo combo para el siguiente ciclo de preview
-  if(step === 0){
-    comboActual = randCombo();
-  }
-}
-
-/* ============== Event bindings ============== */
-document.getElementById('btnStart').addEventListener('click', start);
-document.getElementById('btnStop').addEventListener('click', stop);
-
-// Modo de tiempo (Binario/Ternario)
-btnBin.addEventListener('click', ()=> setModeTime('binario'));
-btnTer.addEventListener('click', ()=> setModeTime('ternario'));
-
-// Largo del ciclo (4/6 compases)
-btnCycle4.addEventListener('click', ()=> setCycleLength(4));
-btnCycle6.addEventListener('click', ()=> setCycleLength(6));
-
-/* Inicialización: Estado por defecto */
-setCycleLength(4); 
-setModeTime('binario'); 
-
-/* ============== Atajo de Teclado (Barra Espaciadora) ============== */
-document.addEventListener('keydown', function(event) {
-  // 32 es el keycode para la barra espaciadora
-  if (event.code === 'Space') {
-    event.preventDefault(); // Evita que la barra espaciadora haga scroll en la página
-    
-    // Si el metrónomo está corriendo, lo detenemos (pausa)
-    if (timer !== null) {
-      document.getElementById('btnStop').click(); // Simula el clic en Detener
-    } else {
-      // Si está detenido, lo iniciamos
-      document.getElementById('btnStart').click(); // Simula el clic en Iniciar
-    }
-  }
-});
-</script>
+<script src="app.js"></script>
 </body>
 </html>
